@@ -1,0 +1,3 @@
+- Create a Next.js web app for reviewing and editing existing transactions.
+- Keep the UI simple and focused on transaction review.
+- Prepare the app so QuickBooks integration can be added later without a rewrite.

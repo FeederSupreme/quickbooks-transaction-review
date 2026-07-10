@@ -1,0 +1,8 @@
+{
+  "build": {
+    "builder": "@railway/nextjs"
+  },
+  "deploy": {
+    "restart": true
+  }
+}
