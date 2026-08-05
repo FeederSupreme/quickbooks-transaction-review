@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { applyGstRules, calculateSummary, GST_CODES } from './lib/transactionRules';
+import { applyGstRules, calculateSummary, GST_CODES, markOutOfScope } from './lib/transactionRules';
 
 const QUICKBOOKS_AUTH_URL = '/api/quickbooks/auth';
 
@@ -52,6 +52,8 @@ export default function HomePage() {
   const [message, setMessage] = useState('Ready to review existing transactions.');
   const [isSaving, setIsSaving] = useState(false);
   const [missingConfig, setMissingConfig] = useState<string[]>([]);
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
@@ -93,6 +95,14 @@ export default function HomePage() {
       .catch(() => setMessage('Unable to validate QuickBooks configuration.'));
   }, []);
 
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((transaction) => {
+      if (filterStartDate && transaction.date < filterStartDate) return false;
+      if (filterEndDate && transaction.date > filterEndDate) return false;
+      return true;
+    });
+  }, [transactions, filterStartDate, filterEndDate]);
+
   const summary = useMemo(() => calculateSummary(transactions), [transactions]);
 
   const toggleSelection = (id: string) => {
@@ -106,6 +116,16 @@ export default function HomePage() {
   const applyDefaultGST = () => {
     setTransactions((current) => applyGstRules(current, selectedIds));
     setMessage(selectedIds.length > 0 ? 'Applied GST rules to the selected transactions.' : 'Select at least one transaction first.');
+  };
+
+  const markSelectedOutOfScope = () => {
+    setTransactions((current) => markOutOfScope(current, selectedIds));
+    setMessage(selectedIds.length > 0 ? 'Marked selected transactions as GST out of scope.' : 'Select at least one transaction first.');
+  };
+
+  const clearDateFilter = () => {
+    setFilterStartDate('');
+    setFilterEndDate('');
   };
 
   const connectQuickBooks = () => {
@@ -153,8 +173,20 @@ export default function HomePage() {
         </div>
         <div className="row">
           <button className="primary" onClick={applyDefaultGST}>Apply GST rules to selected</button>
+          <button className="secondary" onClick={markSelectedOutOfScope}>Mark selected out of GST scope</button>
           <button className="secondary" onClick={connectQuickBooks}>{connected ? 'QuickBooks connected' : 'Connect QuickBooks'}</button>
           <button className="secondary" onClick={saveChanges} disabled={isSaving}>{isSaving ? 'Saving…' : 'Save review changes'}</button>
+        </div>
+        <div className="row" style={{ gap: '12px', flexWrap: 'wrap' }}>
+          <label>
+            From:
+            <input type="date" value={filterStartDate} onChange={(event) => setFilterStartDate(event.target.value)} />
+          </label>
+          <label>
+            To:
+            <input type="date" value={filterEndDate} onChange={(event) => setFilterEndDate(event.target.value)} />
+          </label>
+          <button className="secondary" onClick={clearDateFilter}>Clear date filter</button>
         </div>
         <p>{message}</p>
       </section>
@@ -174,7 +206,7 @@ export default function HomePage() {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((tx) => (
+              {filteredTransactions.map((tx) => (
                 <tr key={tx.id}>
                   <td><input type="checkbox" checked={selectedIds.includes(tx.id)} onChange={() => toggleSelection(tx.id)} /></td>
                   <td>{tx.date}</td>

@@ -28,6 +28,20 @@ export function applyGstRules(transactions, selectedIds) {
   });
 }
 
+export function markOutOfScope(transactions, selectedIds) {
+  return transactions.map((transaction) => {
+    if (!selectedIds.includes(transaction.id)) {
+      return transaction;
+    }
+
+    return {
+      ...transaction,
+      gstCode: 'No GST',
+      status: 'Reviewed'
+    };
+  });
+}
+
 export function calculateSummary(transactions) {
   return {
     total: transactions.length,
