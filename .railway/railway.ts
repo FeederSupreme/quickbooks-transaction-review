@@ -7,7 +7,7 @@ export default defineRailway(() => {
     start: "next start",
   });
 
-  return project("Quickbooks", {
+  return project("quickbooks-transaction-review", {
     resources: [web],
   });
 });
