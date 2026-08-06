@@ -8,7 +8,8 @@ const QUICKBOOKS_AUTH_URL = '/api/quickbooks/auth';
 type Transaction = {
   id: string;
   quickBooksId: string;
-  entityType: 'Bill' | 'Purchase';
+  entityType: string;
+  editable: boolean;
   date: string;
   description: string;
   amount: number;
@@ -22,6 +23,7 @@ const initialTransactions: Transaction[] = [
     id: 'txn-001',
     quickBooksId: 'txn-001',
     entityType: 'Bill',
+    editable: true,
     date: '2026-07-01',
     description: 'Office supplies purchase',
     amount: 121.0,
@@ -33,6 +35,7 @@ const initialTransactions: Transaction[] = [
     id: 'txn-002',
     quickBooksId: 'txn-002',
     entityType: 'Bill',
+    editable: true,
     date: '2026-07-02',
     description: 'Client consulting income',
     amount: 550.0,
@@ -44,6 +47,7 @@ const initialTransactions: Transaction[] = [
     id: 'txn-003',
     quickBooksId: 'txn-003',
     entityType: 'Bill',
+    editable: true,
     date: '2026-07-03',
     description: 'Software subscription',
     amount: 99.0,
@@ -78,14 +82,18 @@ export default function HomePage() {
             id: `${item.entityType}:${item.Id}`,
             quickBooksId: item.Id,
             entityType: item.entityType,
+            editable: item.editable,
             date: item.TxnDate,
-            description: item.PrivateNote || '',
+            description: item.PrivateNote || item.CustomerMemo?.value || item.DocNumber || '',
             amount: item.TotalAmt || 0,
             account: item.AccountRef?.name || item.EntityRef?.name || item.VendorRef?.name || 'Unassigned',
             gstCode: 'GST 10%',
             status: 'Pending'
           }));
           setTransactions(mapped);
+          if (data.warnings?.length) {
+            setMessage(`Loaded posted transactions with ${data.warnings.length} entity warning(s).`);
+          }
         } else if (data.error) {
           setMessage(data.error);
         }
@@ -220,20 +228,20 @@ export default function HomePage() {
             <tbody>
               {filteredTransactions.map((tx) => (
                 <tr key={tx.id}>
-                  <td><input type="checkbox" checked={selectedIds.includes(tx.id)} onChange={() => toggleSelection(tx.id)} /></td>
+                  <td><input type="checkbox" checked={selectedIds.includes(tx.id)} disabled={!tx.editable} onChange={() => toggleSelection(tx.id)} /></td>
                   <td>{tx.date}</td>
                   <td>{tx.entityType}</td>
                   <td>
-                    <input value={tx.description} onChange={(event) => updateTransaction(tx.id, 'description', event.target.value)} />
+                    <input value={tx.description} disabled={!tx.editable} onChange={(event) => updateTransaction(tx.id, 'description', event.target.value)} />
                   </td>
                   <td>
-                    <input type="number" value={tx.amount} onChange={(event) => updateTransaction(tx.id, 'amount', Number(event.target.value))} />
+                    <input type="number" value={tx.amount} disabled={!tx.editable} onChange={(event) => updateTransaction(tx.id, 'amount', Number(event.target.value))} />
                   </td>
                   <td>
-                    <input value={tx.account} onChange={(event) => updateTransaction(tx.id, 'account', event.target.value)} />
+                    <input value={tx.account} disabled={!tx.editable} onChange={(event) => updateTransaction(tx.id, 'account', event.target.value)} />
                   </td>
                   <td>
-                    <select value={tx.gstCode} onChange={(event) => updateTransaction(tx.id, 'gstCode', event.target.value)}>
+                    <select value={tx.gstCode} disabled={!tx.editable} onChange={(event) => updateTransaction(tx.id, 'gstCode', event.target.value)}>
                       {GST_CODES.map((code) => (
                         <option key={code} value={code}>{code}</option>
                       ))}
