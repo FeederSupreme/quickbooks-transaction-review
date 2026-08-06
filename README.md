@@ -17,7 +17,7 @@ A simple Next.js web app for reviewing and editing existing transactions before 
 ```env
 QUICKBOOKS_CLIENT_ID=your_client_id
 QUICKBOOKS_CLIENT_SECRET=your_client_secret
-QUICKBOOKS_REDIRECT_URI=https://quickbooks-transaction-review-production.up.railway.app/api/quickbooks/callback
+QUICKBOOKS_REDIRECT_URI=https://app-production-3d8ef.up.railway.app/api/auth/callback
 QUICKBOOKS_ENVIRONMENT=sandbox
 ```
 
@@ -41,7 +41,7 @@ If you see a QuickBooks auth error about `client_id`, make sure `QUICKBOOKS_CLIE
 ```env
 QUICKBOOKS_CLIENT_ID=your_client_id
 QUICKBOOKS_CLIENT_SECRET=your_client_secret
-QUICKBOOKS_REDIRECT_URI=https://<your-railway-domain>/api/quickbooks/callback
+QUICKBOOKS_REDIRECT_URI=https://<your-railway-domain>/api/auth/callback
 QUICKBOOKS_ENVIRONMENT=sandbox
 ```
 
