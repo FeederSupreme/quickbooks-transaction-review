@@ -7,6 +7,8 @@ const QUICKBOOKS_AUTH_URL = '/api/quickbooks/auth';
 
 type Transaction = {
   id: string;
+  quickBooksId: string;
+  entityType: 'Bill' | 'Purchase';
   date: string;
   description: string;
   amount: number;
@@ -18,6 +20,8 @@ type Transaction = {
 const initialTransactions: Transaction[] = [
   {
     id: 'txn-001',
+    quickBooksId: 'txn-001',
+    entityType: 'Bill',
     date: '2026-07-01',
     description: 'Office supplies purchase',
     amount: 121.0,
@@ -27,6 +31,8 @@ const initialTransactions: Transaction[] = [
   },
   {
     id: 'txn-002',
+    quickBooksId: 'txn-002',
+    entityType: 'Bill',
     date: '2026-07-02',
     description: 'Client consulting income',
     amount: 550.0,
@@ -36,6 +42,8 @@ const initialTransactions: Transaction[] = [
   },
   {
     id: 'txn-003',
+    quickBooksId: 'txn-003',
+    entityType: 'Bill',
     date: '2026-07-03',
     description: 'Software subscription',
     amount: 99.0,
@@ -67,11 +75,13 @@ export default function HomePage() {
       .then((data) => {
         if (Array.isArray(data.transactions)) {
           const mapped = data.transactions.map((item: any) => ({
-            id: item.Id,
+            id: `${item.entityType}:${item.Id}`,
+            quickBooksId: item.Id,
+            entityType: item.entityType,
             date: item.TxnDate,
             description: item.PrivateNote || '',
             amount: item.TotalAmt || 0,
-            account: item.VendorRef?.name || 'Vendor',
+            account: item.AccountRef?.name || item.EntityRef?.name || item.VendorRef?.name || 'Unassigned',
             gstCode: 'GST 10%',
             status: 'Pending'
           }));
@@ -144,7 +154,8 @@ export default function HomePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: selectedIds[0],
+          id: transactions.find((tx) => tx.id === selectedIds[0])?.quickBooksId,
+          entityType: transactions.find((tx) => tx.id === selectedIds[0])?.entityType,
           updates: {
             description: transactions.find((tx) => tx.id === selectedIds[0])?.description,
             gstCode: transactions.find((tx) => tx.id === selectedIds[0])?.gstCode
@@ -198,6 +209,7 @@ export default function HomePage() {
               <tr>
                 <th></th>
                 <th>Date</th>
+                <th>Type</th>
                 <th>Description</th>
                 <th>Amount</th>
                 <th>Account</th>
@@ -210,6 +222,7 @@ export default function HomePage() {
                 <tr key={tx.id}>
                   <td><input type="checkbox" checked={selectedIds.includes(tx.id)} onChange={() => toggleSelection(tx.id)} /></td>
                   <td>{tx.date}</td>
+                  <td>{tx.entityType}</td>
                   <td>
                     <input value={tx.description} onChange={(event) => updateTransaction(tx.id, 'description', event.target.value)} />
                   </td>

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getValidQuickBooksSession, quickBooksQuery, quickBooksUpdate } from '@/app/lib/quickbooks';
 
+const SUPPORTED_TRANSACTION_TYPES = ['Bill', 'Purchase'] as const;
+type SupportedTransactionType = (typeof SUPPORTED_TRANSACTION_TYPES)[number];
+
 export async function GET() {
   try {
     const session = await getValidQuickBooksSession();
@@ -8,10 +11,20 @@ export async function GET() {
       return NextResponse.json({ error: 'Not connected to QuickBooks.' }, { status: 401 });
     }
 
-    const query = 'SELECT * FROM Bill ORDERBY TxnDate DESC MAXRESULTS 50';
-    const result = await quickBooksQuery(session, query);
-    const bills = result.QueryResponse?.Bill || [];
-    return NextResponse.json({ transactions: bills });
+    const results = await Promise.all(
+      SUPPORTED_TRANSACTION_TYPES.map(async (entityType) => {
+        const result = await quickBooksQuery(session, `SELECT * FROM ${entityType} ORDERBY TxnDate DESC MAXRESULTS 50`);
+        const transactions = result.QueryResponse?.[entityType] || [];
+        return transactions.map((transaction: Record<string, unknown>) => ({ ...transaction, entityType }));
+      })
+    );
+
+    const transactions = results
+      .flat()
+      .sort((left: any, right: any) => String(right.TxnDate || '').localeCompare(String(left.TxnDate || '')))
+      .slice(0, 100);
+
+    return NextResponse.json({ transactions });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unable to load transactions.' }, { status: 500 });
   }
@@ -26,6 +39,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const id = body.id;
+    const entityType = body.entityType as SupportedTransactionType;
     const updates = body.updates || {};
 
     if (!id) {
@@ -36,30 +50,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid transaction id.' }, { status: 400 });
     }
 
-    const existingResponse = await quickBooksQuery(session, `SELECT * FROM Bill WHERE Id = '${id}'`);
-    const existingBill = existingResponse.QueryResponse?.Bill?.[0];
-
-    if (!existingBill) {
-      return NextResponse.json({ error: 'Bill not found.' }, { status: 404 });
+    if (!SUPPORTED_TRANSACTION_TYPES.includes(entityType)) {
+      return NextResponse.json({ error: 'Unsupported transaction type.' }, { status: 400 });
     }
 
-    const lineItems = existingBill.Line || [];
+    const existingResponse = await quickBooksQuery(session, `SELECT * FROM ${entityType} WHERE Id = '${id}'`);
+    const existingTransaction = existingResponse.QueryResponse?.[entityType]?.[0];
+
+    if (!existingTransaction) {
+      return NextResponse.json({ error: 'Transaction not found.' }, { status: 404 });
+    }
+
+    const lineItems = existingTransaction.Line || [];
     const updatePayload: any = {
-      Id: id,
-      SyncToken: existingBill.SyncToken,
-      PrivateNote: updates.description ?? existingBill.PrivateNote,
-      VendorRef: existingBill.VendorRef,
-      Line: lineItems
+      ...existingTransaction,
+      PrivateNote: updates.description ?? existingTransaction.PrivateNote
     };
 
     if (updates.gstCode) {
-      updatePayload.Line = lineItems.map((line: any) => ({
-        ...line,
-        TaxCodeRef: { value: updates.gstCode === 'GST 10%' ? 'TAX' : 'NON' }
-      }));
+      const taxCode = updates.gstCode === 'GST 10%' ? 'TAX' : 'NON';
+      updatePayload.Line = lineItems.map((line: any) => {
+        const detailKey = line.DetailType;
+        const detail = detailKey ? line[detailKey] : null;
+
+        return detail
+          ? { ...line, [detailKey]: { ...detail, TaxCodeRef: { value: taxCode } } }
+          : line;
+      });
     }
 
-    const result = await quickBooksUpdate(session, 'bill', id, updatePayload);
+    const result = await quickBooksUpdate(session, entityType.toLowerCase(), id, updatePayload);
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unable to update transaction.' }, { status: 500 });
