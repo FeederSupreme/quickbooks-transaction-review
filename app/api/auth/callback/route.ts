@@ -12,7 +12,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const tokenResponse = await exchangeCodeForTokens(code, getQuickBooksRedirectUri());
+    const redirectUri = getQuickBooksRedirectUri();
+    const tokenResponse = await exchangeCodeForTokens(code, redirectUri);
     await writeQuickBooksSession({
       accessToken: tokenResponse.access_token,
       refreshToken: tokenResponse.refresh_token,
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
       expiresAt: Date.now() + Number(tokenResponse.expires_in || 3600) * 1000
     });
 
-    return NextResponse.redirect(new URL('/?connected=1&state=' + encodeURIComponent(state || ''), request.url));
+    return NextResponse.redirect(new URL('/?connected=1&state=' + encodeURIComponent(state || ''), redirectUri));
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to connect QuickBooks.' }, { status: 500 });
   }
