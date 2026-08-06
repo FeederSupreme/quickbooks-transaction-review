@@ -8,7 +8,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Not connected to QuickBooks.' }, { status: 401 });
     }
 
-    const query = 'SELECT Id, SyncToken, TxnDate, TotalAmt, PrivateNote, VendorRef, Line FROM Bill ORDER BY TxnDate DESC LIMIT 50';
+    const query = 'SELECT * FROM Bill ORDERBY TxnDate DESC MAXRESULTS 50';
     const result = await quickBooksQuery(session, query);
     const bills = result.QueryResponse?.Bill || [];
     return NextResponse.json({ transactions: bills });
@@ -32,7 +32,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing transaction id.' }, { status: 400 });
     }
 
-    const existingResponse = await quickBooksQuery(session, `SELECT Id, SyncToken, Line, PrivateNote, VendorRef FROM Bill WHERE Id='${id}'`);
+    if (!/^\d+$/.test(String(id))) {
+      return NextResponse.json({ error: 'Invalid transaction id.' }, { status: 400 });
+    }
+
+    const existingResponse = await quickBooksQuery(session, `SELECT * FROM Bill WHERE Id = '${id}'`);
     const existingBill = existingResponse.QueryResponse?.Bill?.[0];
 
     if (!existingBill) {

@@ -172,11 +172,15 @@ export async function quickBooksQuery(session: QuickBooksSession, query: string)
     }
   });
 
+  const data = await response.json().catch(() => null);
+
   if (!response.ok) {
-    throw new Error('QuickBooks query failed.');
+    const fault = data?.Fault?.Error?.[0];
+    const detail = fault?.Detail || fault?.Message;
+    throw new Error(detail ? `QuickBooks query failed: ${detail}` : `QuickBooks query failed with status ${response.status}.`);
   }
 
-  return response.json();
+  return data;
 }
 
 export async function quickBooksUpdate(session: QuickBooksSession, entity: string, id: string, payload: Record<string, unknown>) {
