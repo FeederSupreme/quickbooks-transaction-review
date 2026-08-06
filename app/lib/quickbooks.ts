@@ -13,9 +13,19 @@ function getClientConfig() {
   return {
     clientId: process.env.QUICKBOOKS_CLIENT_ID || '',
     clientSecret: process.env.QUICKBOOKS_CLIENT_SECRET || '',
-    redirectUri: process.env.QUICKBOOKS_REDIRECT_URI || 'http://localhost:3000/api/quickbooks/callback',
+    redirectUri: process.env.QUICKBOOKS_REDIRECT_URI || '',
     environment: process.env.QUICKBOOKS_ENVIRONMENT === 'sandbox' ? 'sandbox' : 'production'
   };
+}
+
+export function getQuickBooksRedirectUri() {
+  const { redirectUri } = getClientConfig();
+
+  if (!redirectUri) {
+    throw new Error('Missing QUICKBOOKS_REDIRECT_URI environment variable.');
+  }
+
+  return redirectUri;
 }
 
 function getAuthBaseUrl() {

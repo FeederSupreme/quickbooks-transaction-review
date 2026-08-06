@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { exchangeCodeForTokens, writeQuickBooksSession } from '@/app/lib/quickbooks';
+import { exchangeCodeForTokens, getQuickBooksRedirectUri, writeQuickBooksSession } from '@/app/lib/quickbooks';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const tokenResponse = await exchangeCodeForTokens(code, process.env.QUICKBOOKS_REDIRECT_URI || 'http://localhost:3000/api/quickbooks/callback');
+    const tokenResponse = await exchangeCodeForTokens(code, getQuickBooksRedirectUri());
     await writeQuickBooksSession({
       accessToken: tokenResponse.access_token,
       refreshToken: tokenResponse.refresh_token,

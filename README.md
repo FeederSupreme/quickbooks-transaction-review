@@ -17,7 +17,7 @@ A simple Next.js web app for reviewing and editing existing transactions before 
 ```env
 QUICKBOOKS_CLIENT_ID=your_client_id
 QUICKBOOKS_CLIENT_SECRET=your_client_secret
-QUICKBOOKS_REDIRECT_URI=http://localhost:3000/api/quickbooks/callback
+QUICKBOOKS_REDIRECT_URI=https://quickbooks-transaction-review-production.up.railway.app/api/quickbooks/callback
 QUICKBOOKS_ENVIRONMENT=sandbox
 ```
 
@@ -28,7 +28,7 @@ npm install
 npm run dev
 ```
 
-4. Open http://localhost:3000 and click **Connect QuickBooks**.
+4. Open the URL shown by the development server and click **Connect QuickBooks**.
 
 If you see a QuickBooks auth error about `client_id`, make sure `QUICKBOOKS_CLIENT_ID` is set in `.env.local`.
 
